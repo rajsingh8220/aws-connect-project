@@ -166,7 +166,11 @@
       },
       "Parameters": {
         "LambdaFunctionARN": "{{VANITY_NUMBER_LAMBDA_ARN}}",
-        "InvocationTimeLimitSeconds": "8"
+        "InvocationTimeLimitSeconds": "8",
+        "LambdaInvocationAttributes": {
+          "firstName": "$.Attributes.firstName",
+          "accountPhoneNumber": "$.Attributes.accountPhoneNumber"
+        }
       }
     },
     {
@@ -178,7 +182,7 @@
         "Conditions": []
       },
       "Parameters": {
-        "Text": "Based on the phone number on your account, here are three vanity number ideas. Option one: $.External.vanityOption1Speak. Option two: $.External.vanityOption2Speak. Option three: $.External.vanityOption3Speak. Thank you for calling Acme Financial Services. Goodbye."
+        "Text": "Based on your name and the phone number on your account, here are three personalized vanity number ideas. Option one: $.External.vanityOption1Speak. Option two: $.External.vanityOption2Speak. Option three: $.External.vanityOption3Speak. Thank you for calling Acme Financial Services. Goodbye."
       }
     },
     {

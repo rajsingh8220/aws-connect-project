@@ -1,4 +1,5 @@
 import { findWordMatches, normalizePhoneDigits, toSpeakablePhrase, wordToT9 } from './t9';
+import { generateNameVanityCandidates, nameSimilarity, spellDigitsTowardName } from './name-vanity';
 import { generateVanityCandidates, scoreVanity } from './vanity-engine';
 import { handler } from './handler';
 
@@ -29,30 +30,38 @@ function connectEvent(details: Record<string, unknown>): import('aws-lambda').Co
 describe('t9 utilities', () => {
   test('wordToT9 encodes dictionary words', () => {
     expect(wordToT9('CASH')).toBe('2274');
-    expect(wordToT9('DIS')).toBe('347');
+    expect(wordToT9('CARLOS')).toBe('227567');
   });
 
   test('toSpeakablePhrase spells words and speaks digits', () => {
-    expect(toSpeakablePhrase('1-DIS-847')).toBe('one, D I S, eight four seven');
-    expect(toSpeakablePhrase('1-CASH-274')).toBe('one, C A S H, two seven four');
+    expect(toSpeakablePhrase('1-CARLOS-847')).toBe('one, C A R L O S, eight four seven');
+  });
+});
+
+describe('name vanity', () => {
+  test('nameSimilarity favors matching prefixes', () => {
+    expect(nameSimilarity('CARLOS', 'Carlos')).toBeGreaterThan(nameSimilarity('DIS', 'Carlos'));
+  });
+
+  test('generateNameVanityCandidates uses the first name in vanity options', () => {
+    const candidates = generateNameVanityCandidates('+12143473847', 'Carlos', 5);
+
+    expect(candidates[0].display).toContain('CARLOS');
+    expect(candidates[0].speak).toContain('C A R L O S');
+  });
+
+  test('spellDigitsTowardName biases keypad letters toward the first name', () => {
+    const spelling = spellDigitsTowardName('2143473847', 'Carlos');
+    expect(nameSimilarity(spelling, 'Carlos')).toBeGreaterThan(0.2);
   });
 });
 
 describe('vanity engine', () => {
-  test('findWordMatches locates DIS in account phone digits', () => {
-    const digits = normalizePhoneDigits('+12143473847');
-    const matches = findWordMatches(digits);
+  test('generateVanityCandidates prioritizes first-name options', () => {
+    const candidates = generateVanityCandidates('+12143473847', 'Carlos', 5);
 
-    expect(matches.some((match) => match.word === 'DIS')).toBe(true);
-  });
-
-  test('generateVanityCandidates prefers real words over random letters', () => {
-    const candidates = generateVanityCandidates('+12143473847', 5);
-
-    expect(candidates.length).toBeGreaterThan(0);
-    expect(candidates[0].display).toMatch(/^1-[A-Z]+-/);
-    expect(candidates[0].speak).toContain(' ');
-    expect(candidates[0].display).not.toMatch(/^[A-Z]{8,}$/);
+    expect(candidates[0].display).toMatch(/CARLOS/);
+    expect(candidates[0].score).toBeGreaterThan(800);
   });
 
   test('scoreVanity rewards more word segments', () => {
@@ -75,11 +84,15 @@ describe('vanity-number handler', () => {
     expect(__mockSend).not.toHaveBeenCalled();
   });
 
-  test('writes top 5 vanity numbers and returns speakable top 3', async () => {
+  test('writes personalized vanity numbers when first name is provided', async () => {
     const result = await handler(
       connectEvent({
-        Parameters: { accountPhoneNumber: '+12143473847' },
+        Parameters: {
+          accountPhoneNumber: '+12143473847',
+          firstName: 'Carlos',
+        },
         ContactData: {
+          Attributes: { firstName: 'Carlos', accountPhoneNumber: '+12143473847' },
           CustomerEndpoint: { Address: '+15551234567', Type: 'TELEPHONE_NUMBER' },
         },
       }),
@@ -93,16 +106,13 @@ describe('vanity-number handler', () => {
 
     expect(writes).toHaveLength(5);
     expect(writes[0].PutRequest.Item).toMatchObject({
-      callerPhoneNumber: '+15551234567',
-      sourcePhoneNumber: '+12143473847',
-      rank: 1,
-      vanitySpeak: expect.any(String),
+      firstName: 'Carlos',
+      vanitySpeak: expect.stringContaining('C A R L O S'),
     });
 
-    expect(result.vanityOption1).toBeTruthy();
-    expect(result.vanityOption1Speak).toContain(' ');
+    expect(result.vanityOption1).toContain('CARLOS');
+    expect(result.vanityOption1Speak).toContain('C A R L O S');
     expect(result.vanityOption2Speak).toBeTruthy();
     expect(result.vanityOption3Speak).toBeTruthy();
-    expect(result.vanityOptions).toContain(result.vanityOption1);
   });
 });

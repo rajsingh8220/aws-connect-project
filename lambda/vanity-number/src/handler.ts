@@ -23,6 +23,10 @@ export const handler = async (
     event.Details?.Parameters?.callerPhoneNumber ??
     event.Details?.ContactData?.CustomerEndpoint?.Address;
 
+  const firstName =
+    event.Details?.Parameters?.firstName?.trim() ??
+    event.Details?.ContactData?.Attributes?.firstName?.trim();
+
   const sourcePhone = accountPhoneNumber ?? callerPhoneNumber;
 
   if (!sourcePhone) {
@@ -32,7 +36,7 @@ export const handler = async (
     };
   }
 
-  const ranked = generateVanityCandidates(sourcePhone);
+  const ranked = generateVanityCandidates(sourcePhone, firstName);
   const topFive = ranked.slice(0, 5);
   const topThree = topFive.slice(0, 3);
 
@@ -44,6 +48,7 @@ export const handler = async (
         rank: index + 1,
         vanityNumber: vanity.display,
         vanitySpeak: vanity.speak,
+        firstName: firstName ?? '',
         sourcePhoneNumber: sourcePhone,
         createdAt: timestamp,
         score: vanity.score,
