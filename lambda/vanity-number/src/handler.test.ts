@@ -1,5 +1,6 @@
-import type { ConnectContactFlowEvent } from 'aws-lambda';
-import { generateVanityCandidates, handler, scoreVanity } from './handler';
+import { findWordMatches, normalizePhoneDigits, toSpeakablePhrase, wordToT9 } from './t9';
+import { generateVanityCandidates, scoreVanity } from './vanity-engine';
+import { handler } from './handler';
 
 jest.mock('@aws-sdk/client-dynamodb', () => ({
   DynamoDBClient: jest.fn(),
@@ -19,23 +20,43 @@ jest.mock('@aws-sdk/lib-dynamodb', () => {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { __mockSend } = require('@aws-sdk/lib-dynamodb') as { __mockSend: jest.Mock };
 
-const baseEvent = {} as ConnectContactFlowEvent;
+const baseEvent = {} as import('aws-lambda').ConnectContactFlowEvent;
 
-function connectEvent(details: Record<string, unknown>): ConnectContactFlowEvent {
-  return { ...baseEvent, Details: details } as ConnectContactFlowEvent;
+function connectEvent(details: Record<string, unknown>): import('aws-lambda').ConnectContactFlowEvent {
+  return { ...baseEvent, Details: details } as import('aws-lambda').ConnectContactFlowEvent;
 }
 
-describe('vanity-number utilities', () => {
-  test('scoreVanity prefers more letters over digits', () => {
-    expect(scoreVanity('ABCDEFGHIJ')).toBeGreaterThan(scoreVanity('1234567890'));
+describe('t9 utilities', () => {
+  test('wordToT9 encodes dictionary words', () => {
+    expect(wordToT9('CASH')).toBe('2274');
+    expect(wordToT9('DIS')).toBe('347');
   });
 
-  test('generateVanityCandidates returns ranked options from phone digits', () => {
+  test('toSpeakablePhrase spells words and speaks digits', () => {
+    expect(toSpeakablePhrase('1-DIS-847')).toBe('one, D I S, eight four seven');
+    expect(toSpeakablePhrase('1-CASH-274')).toBe('one, C A S H, two seven four');
+  });
+});
+
+describe('vanity engine', () => {
+  test('findWordMatches locates DIS in account phone digits', () => {
+    const digits = normalizePhoneDigits('+12143473847');
+    const matches = findWordMatches(digits);
+
+    expect(matches.some((match) => match.word === 'DIS')).toBe(true);
+  });
+
+  test('generateVanityCandidates prefers real words over random letters', () => {
     const candidates = generateVanityCandidates('+12143473847', 5);
 
     expect(candidates.length).toBeGreaterThan(0);
-    expect(candidates.length).toBeLessThanOrEqual(5);
-    expect(candidates[0]).toMatch(/[A-Z0-9-]+/);
+    expect(candidates[0].display).toMatch(/^1-[A-Z]+-/);
+    expect(candidates[0].speak).toContain(' ');
+    expect(candidates[0].display).not.toMatch(/^[A-Z]{8,}$/);
+  });
+
+  test('scoreVanity rewards more word segments', () => {
+    expect(scoreVanity('1-CASH-BANK')).toBeGreaterThan(scoreVanity('1-CASH-847'));
   });
 });
 
@@ -54,7 +75,7 @@ describe('vanity-number handler', () => {
     expect(__mockSend).not.toHaveBeenCalled();
   });
 
-  test('writes top 5 vanity numbers and returns top 3', async () => {
+  test('writes top 5 vanity numbers and returns speakable top 3', async () => {
     const result = await handler(
       connectEvent({
         Parameters: { accountPhoneNumber: '+12143473847' },
@@ -75,11 +96,13 @@ describe('vanity-number handler', () => {
       callerPhoneNumber: '+15551234567',
       sourcePhoneNumber: '+12143473847',
       rank: 1,
+      vanitySpeak: expect.any(String),
     });
 
     expect(result.vanityOption1).toBeTruthy();
-    expect(result.vanityOption2).toBeTruthy();
-    expect(result.vanityOption3).toBeTruthy();
+    expect(result.vanityOption1Speak).toContain(' ');
+    expect(result.vanityOption2Speak).toBeTruthy();
+    expect(result.vanityOption3Speak).toBeTruthy();
     expect(result.vanityOptions).toContain(result.vanityOption1);
   });
 });

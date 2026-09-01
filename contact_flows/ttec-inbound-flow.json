@@ -178,7 +178,7 @@
         "Conditions": []
       },
       "Parameters": {
-        "Text": "Based on the phone number on your account, here are three vanity number ideas. Option one: $.External.vanityOption1. Option two: $.External.vanityOption2. Option three: $.External.vanityOption3. Thank you for calling Acme Financial Services. Goodbye."
+        "Text": "Based on the phone number on your account, here are three vanity number ideas. Option one: $.External.vanityOption1Speak. Option two: $.External.vanityOption2Speak. Option three: $.External.vanityOption3Speak. Thank you for calling Acme Financial Services. Goodbye."
       }
     },
     {

@@ -1,62 +1,14 @@
 import type { ConnectContactFlowEvent, ConnectContactFlowResult } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { generateVanityCandidates, scoreVanity } from './vanity-engine';
 
 const TABLE_NAME = process.env.VANITY_TABLE_NAME ?? 'ttec-vanity-numbers';
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-const DIGIT_TO_LETTERS: Record<string, string> = {
-  '2': 'ABC',
-  '3': 'DEF',
-  '4': 'GHI',
-  '5': 'JKL',
-  '6': 'MNO',
-  '7': 'PQRS',
-  '8': 'TUV',
-  '9': 'WXYZ',
-};
-
-/**
- * Score vanity candidates: prefer more letters (fewer digits), readable words,
- * and US-style 1-800-XXX-XXXX grouping when possible.
- */
-export function scoreVanity(vanity: string): number {
-  const letters = (vanity.match(/[A-Z]/gi) ?? []).length;
-  const digits = (vanity.match(/[0-9]/g) ?? []).length;
-  const hasTriple = /([A-Z])\1\1/i.test(vanity) ? -2 : 0;
-  return letters * 10 - digits * 3 + hasTriple;
-}
-
-export function generateVanityCandidates(phoneNumber: string, limit = 20): string[] {
-  const digits = phoneNumber.replace(/\D/g, '').slice(-10);
-  const candidates = new Set<string>();
-
-  const baseLetters = digits
-    .split('')
-    .map((d) => DIGIT_TO_LETTERS[d] ?? d)
-    .join('');
-
-  candidates.add(baseLetters);
-  candidates.add(baseLetters.slice(0, 3) + '-' + baseLetters.slice(3, 6) + '-' + baseLetters.slice(6));
-  candidates.add('1-' + baseLetters);
-
-  for (let i = 0; i < digits.length; i++) {
-    const options = DIGIT_TO_LETTERS[digits[i]];
-    if (!options) continue;
-    for (const letter of options) {
-      const variant = baseLetters.substring(0, i) + letter + baseLetters.substring(i + 1);
-      candidates.add(variant);
-    }
-  }
-
-  return [...candidates]
-    .sort((a, b) => scoreVanity(b) - scoreVanity(a))
-    .slice(0, limit);
-}
-
 /**
  * Connect contact-flow Lambda: converts account phone to vanity numbers,
- * persists top 5 in DynamoDB, returns top 3 for the caller.
+ * persists top 5 in DynamoDB, returns top 3 display + speakable phrases.
  */
 export const handler = async (
   event: ConnectContactFlowEvent,
@@ -90,10 +42,11 @@ export const handler = async (
       Item: {
         callerPhoneNumber: callerPhoneNumber ?? sourcePhone,
         rank: index + 1,
-        vanityNumber: vanity,
+        vanityNumber: vanity.display,
+        vanitySpeak: vanity.speak,
         sourcePhoneNumber: sourcePhone,
         createdAt: timestamp,
-        score: scoreVanity(vanity),
+        score: vanity.score,
       },
     },
   }));
@@ -108,9 +61,14 @@ export const handler = async (
 
   return {
     vanitySuccess: 'true',
-    vanityOption1: topThree[0] ?? '',
-    vanityOption2: topThree[1] ?? '',
-    vanityOption3: topThree[2] ?? '',
-    vanityOptions: topThree.join(', '),
+    vanityOption1: topThree[0]?.display ?? '',
+    vanityOption2: topThree[1]?.display ?? '',
+    vanityOption3: topThree[2]?.display ?? '',
+    vanityOption1Speak: topThree[0]?.speak ?? '',
+    vanityOption2Speak: topThree[1]?.speak ?? '',
+    vanityOption3Speak: topThree[2]?.speak ?? '',
+    vanityOptions: topThree.map((option) => option.display).join(', '),
   };
 };
+
+export { generateVanityCandidates, scoreVanity };
