@@ -2,8 +2,6 @@
 
 AWS CDK project for the **TTEC Acme Financial Services** inbound contact center. Callers dial a DID, enter an account number, hear their balance, and receive vanity number suggestions generated from their account phone number.
 
-Based on the requirements in [`project_detail.pdf`](project_detail.pdf).
-
 ---
 
 ## Architecture
@@ -73,7 +71,7 @@ sequenceDiagram
 
 ---
 
-## Project detail (from PDF)
+## Project detail
 
 | Requirement | Implementation |
 |-------------|----------------|
@@ -118,7 +116,6 @@ AWS_Connect_project/
 │   │   └── utils/
 │   └── test/connect-stack.test.ts
 ├── package.json
-├── project_detail.pdf
 └── README.md
 ```
 
