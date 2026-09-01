@@ -35,7 +35,7 @@ The inbound DID (`+15055393849`) is pre-provisioned outside CDK. CDK re-associat
 │   ├── account-lookup/src/handler.ts
 │   └── vanity-number/src/handler.ts
 ├── mcp/
-│   └── vanity-review-server/          # BONUS: MCP for reviewers
+│   └── vanity-review-server/          # Add-on MCP for reviewers
 ├── infra/
 │   ├── bin/app.ts
 │   ├── lib/config/project-config.ts
@@ -178,11 +178,9 @@ Table: `ttec-vanity-numbers` — partition key `callerPhoneNumber`, sort key `ra
 2. Dial `+15055393849`
 3. Enter account `108` and press `#` → Carlos, balance `892.15`
 
-## BONUS: MCP for reviewers (requirement 5)
+## Add-on: MCP for reviewers
 
-The assignment PDF includes an optional bonus:
-
-> **BONUS: Provide an MCP for the team to review the results from DynamoDB**
+An optional **add-on** for assignment reviewers: an MCP server to inspect vanity number results in DynamoDB without using the AWS console or CLI.
 
 **MCP** = [Model Context Protocol](https://modelcontextprotocol.io/) — a standard way for AI tools (Cursor, Claude Desktop, etc.) to call **tools** on your behalf. Reviewers connect the MCP server to their editor, then ask natural-language questions like *"Show recent vanity results for Carlos"* without writing AWS CLI commands.
 
