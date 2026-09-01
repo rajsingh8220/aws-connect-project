@@ -1,0 +1,32 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "welcome",
+  "Metadata": {
+    "entryPointPosition": { "x": 40, "y": 40 },
+    "ActionMetadata": {
+      "welcome": { "position": { "x": 160, "y": 40 } },
+      "disconnect": { "position": { "x": 360, "y": 40 } }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Identifier": "welcome",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "Welcome to Acme Financial Services. The contact center is being provisioned."
+      }
+    },
+    {
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {},
+      "Parameters": {}
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+cdk.out/
+infra/dist/
+infra/cdk.out/
+/lib/
+/bin/
+/test/
+*.js
+!infra/jest.config.js
+*.d.ts
+.DS_Store
+*.log
+.env
+.env.*

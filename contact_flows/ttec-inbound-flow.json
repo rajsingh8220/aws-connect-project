@@ -1,0 +1,215 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "welcome",
+  "Metadata": {
+    "entryPointPosition": { "x": 40, "y": 40 },
+    "ActionMetadata": {
+      "welcome": { "position": { "x": 160, "y": 40 } },
+      "get-account-input": { "position": { "x": 360, "y": 40 } },
+      "save-account-number": { "position": { "x": 560, "y": 40 } },
+      "invoke-account-lookup": { "position": { "x": 760, "y": 40 } },
+      "check-lookup-success": { "position": { "x": 960, "y": 40 } },
+      "play-balance": { "position": { "x": 1360, "y": 40 } },
+      "invoke-vanity-number": { "position": { "x": 1560, "y": 40 } },
+      "play-vanity-options": { "position": { "x": 1760, "y": 40 } },
+      "account-not-found": { "position": { "x": 1160, "y": 200 } },
+      "lookup-error": { "position": { "x": 960, "y": 200 } },
+      "disconnect": { "position": { "x": 1960, "y": 40 } }
+    },
+    "Annotations": []
+  },
+  "Actions": [
+    {
+      "Identifier": "welcome",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "get-account-input",
+        "Errors": [],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "Welcome to Acme Financial Services. Please enter your account number using your keypad, then press pound."
+      }
+    },
+    {
+      "Identifier": "get-account-input",
+      "Type": "GetParticipantInput",
+      "Transitions": {
+        "NextAction": "save-account-number",
+        "Errors": [
+          {
+            "NextAction": "account-not-found",
+            "ErrorType": "NoMatchingError"
+          }
+        ],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "Enter your account number now.",
+        "StoreInput": "True",
+        "InputTimeLimitSeconds": "15",
+        "InputValidation": {
+          "CustomValidation": {
+            "MaximumLength": "12"
+          }
+        }
+      }
+    },
+    {
+      "Identifier": "save-account-number",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "invoke-account-lookup",
+        "Errors": [
+          {
+            "NextAction": "lookup-error",
+            "ErrorType": "NoMatchingError"
+          }
+        ],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Attributes": {
+          "accountNumber": "$.StoredCustomerInput"
+        }
+      }
+    },
+    {
+      "Identifier": "invoke-account-lookup",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "save-lookup-results",
+        "Errors": [
+          {
+            "NextAction": "lookup-error",
+            "ErrorType": "NoMatchingError"
+          }
+        ],
+        "Conditions": []
+      },
+      "Parameters": {
+        "LambdaFunctionARN": "{{ACCOUNT_LOOKUP_LAMBDA_ARN}}",
+        "InvocationTimeLimitSeconds": "8"
+      }
+    },
+    {
+      "Identifier": "save-lookup-results",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "check-lookup-success",
+        "Errors": [
+          {
+            "NextAction": "lookup-error",
+            "ErrorType": "NoMatchingError"
+          }
+        ],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Attributes": {
+          "lookupSuccess": "$.External.lookupSuccess",
+          "firstName": "$.External.firstName",
+          "balance": "$.External.balance",
+          "accountPhoneNumber": "$.External.phoneNumber"
+        }
+      }
+    },
+    {
+      "Identifier": "check-lookup-success",
+      "Type": "Compare",
+      "Transitions": {
+        "NextAction": "account-not-found",
+        "Errors": [
+          {
+            "NextAction": "account-not-found",
+            "ErrorType": "NoMatchingCondition"
+          }
+        ],
+        "Conditions": [
+          {
+            "NextAction": "play-balance",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": ["true"]
+            }
+          }
+        ]
+      },
+      "Parameters": {
+        "ComparisonValue": "$.Attributes.lookupSuccess"
+      }
+    },
+    {
+      "Identifier": "play-balance",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "invoke-vanity-number",
+        "Errors": [],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "Thank you, $.Attributes.firstName. Your current account balance is $.Attributes.balance dollars."
+      }
+    },
+    {
+      "Identifier": "invoke-vanity-number",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "play-vanity-options",
+        "Errors": [
+          {
+            "NextAction": "disconnect",
+            "ErrorType": "NoMatchingError"
+          }
+        ],
+        "Conditions": []
+      },
+      "Parameters": {
+        "LambdaFunctionARN": "{{VANITY_NUMBER_LAMBDA_ARN}}",
+        "InvocationTimeLimitSeconds": "8"
+      }
+    },
+    {
+      "Identifier": "play-vanity-options",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "Based on the phone number on your account, here are three vanity number ideas. Option one: $.External.vanityOption1. Option two: $.External.vanityOption2. Option three: $.External.vanityOption3. Thank you for calling Acme Financial Services. Goodbye."
+      }
+    },
+    {
+      "Identifier": "account-not-found",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "We could not find an account with that number. Please check your account number and try again later. Goodbye."
+      }
+    },
+    {
+      "Identifier": "lookup-error",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "disconnect",
+        "Errors": [],
+        "Conditions": []
+      },
+      "Parameters": {
+        "Text": "We are experiencing a technical issue looking up your account. Please try again later. Goodbye."
+      }
+    },
+    {
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Transitions": {},
+      "Parameters": {}
+    }
+  ]
+}
