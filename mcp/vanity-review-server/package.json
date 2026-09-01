@@ -1,0 +1,23 @@
+{
+  "name": "@ttec/vanity-review-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MCP server for reviewers to inspect ttec-vanity-numbers DynamoDB results",
+  "type": "module",
+  "bin": {
+    "ttec-vanity-review-mcp": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "~5.3.3"
+  }
+}

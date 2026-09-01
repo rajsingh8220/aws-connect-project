@@ -34,6 +34,8 @@ The inbound DID (`+15055393849`) is pre-provisioned outside CDK. CDK re-associat
 ├── lambda/
 │   ├── account-lookup/src/handler.ts
 │   └── vanity-number/src/handler.ts
+├── mcp/
+│   └── vanity-review-server/          # BONUS: MCP for reviewers
 ├── infra/
 │   ├── bin/app.ts
 │   ├── lib/config/project-config.ts
@@ -175,6 +177,108 @@ Table: `ttec-vanity-numbers` — partition key `callerPhoneNumber`, sort key `ra
 1. `aws cloudformation describe-stacks --stack-name TtecConnectStack --query 'Stacks[0].Outputs' --output table`
 2. Dial `+15055393849`
 3. Enter account `108` and press `#` → Carlos, balance `892.15`
+
+## BONUS: MCP for reviewers (requirement 5)
+
+The assignment PDF includes an optional bonus:
+
+> **BONUS: Provide an MCP for the team to review the results from DynamoDB**
+
+**MCP** = [Model Context Protocol](https://modelcontextprotocol.io/) — a standard way for AI tools (Cursor, Claude Desktop, etc.) to call **tools** on your behalf. Reviewers connect the MCP server to their editor, then ask natural-language questions like *"Show recent vanity results for Carlos"* without writing AWS CLI commands.
+
+### What we built
+
+`mcp/vanity-review-server/` is a **read-only** MCP server that queries the `ttec-vanity-numbers` DynamoDB table written by the vanity Lambda after each call.
+
+| MCP tool | Purpose |
+|----------|---------|
+| `describe_vanity_table` | Table schema, keys, and field descriptions |
+| `list_recent_vanity_results` | Latest vanity records (after test calls) |
+| `get_vanity_results_for_caller` | All ranks 1–5 for one `callerPhoneNumber` |
+| `search_vanity_by_first_name` | Filter by personalized `firstName` (e.g. Carlos) |
+
+```mermaid
+flowchart LR
+  Reviewer[Reviewer in Cursor] --> MCP[ttec-vanity-review MCP]
+  MCP -->|read-only Scan/Query| DDB[(ttec-vanity-numbers)]
+  VN[ttec-vanity-number Lambda] -->|writes top 5| DDB
+```
+
+### Setup for reviewers (Cursor)
+
+1. **Clone and deploy** the stack (or use the candidate's shared AWS account).
+2. **Install MCP server dependencies:**
+   ```bash
+   cd mcp/vanity-review-server && npm install
+   ```
+3. **Configure AWS credentials** with read access to DynamoDB (`AWS_PROFILE` or env vars).
+4. **Enable the MCP server** — this repo includes [`.cursor/mcp.json`](.cursor/mcp.json):
+
+   ```json
+   {
+     "mcpServers": {
+       "ttec-vanity-review": {
+         "command": "npx",
+         "args": ["tsx", "mcp/vanity-review-server/src/index.ts"],
+         "env": {
+           "AWS_PROFILE": "shaileshdemo",
+           "AWS_REGION": "us-east-1",
+           "VANITY_TABLE_NAME": "ttec-vanity-numbers"
+         }
+       }
+     }
+   }
+   ```
+
+   In Cursor: **Settings → MCP** — confirm `ttec-vanity-review` is enabled (green). Open the project root so paths resolve.
+
+5. **Place a test call** (dial `+15055393849`, account `108`, press `#`) so DynamoDB has data.
+
+### Example reviewer prompts (in Cursor chat)
+
+- *"Use the ttec-vanity-review MCP to list the 10 most recent vanity results."*
+- *"Show vanity options stored for first name Carlos."*
+- *"Describe the vanity DynamoDB table schema."*
+- *"Did the vanity Lambda store rank 1–5 for the last test call?"*
+
+### Example MCP tool output
+
+After calling `list_recent_vanity_results` with `limit: 3`:
+
+```json
+{
+  "tableName": "ttec-vanity-numbers",
+  "count": 3,
+  "items": [
+    {
+      "callerPhoneNumber": "+15551234567",
+      "rank": 1,
+      "vanityNumber": "1-CARLOS-847",
+      "vanitySpeak": "one, C A R L O S, eight four seven",
+      "firstName": "Carlos",
+      "sourcePhoneNumber": "+12143473847",
+      "score": 1400,
+      "createdAt": "2026-09-01T05:20:00.000Z"
+    }
+  ]
+}
+```
+
+### Run manually (without Cursor)
+
+```bash
+export AWS_PROFILE=shaileshdemo
+export AWS_REGION=us-east-1
+cd mcp/vanity-review-server && npm install && npm start
+```
+
+The server uses **stdio** transport; Cursor spawns it automatically when a tool is invoked.
+
+### Production notes (if this were real)
+
+- Add a **read-only IAM role** scoped to `dynamodb:Query` / `Scan` on `ttec-vanity-numbers` only.
+- Add a **GSI on `firstName`** instead of scan-with-filter for large tables.
+- Deploy MCP as a **remote HTTP/SSE server** if reviewers should not run local AWS credentials.
 
 ## Configuration
 

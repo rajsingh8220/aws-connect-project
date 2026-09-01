@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ttec-vanity-review": {
+      "command": "npx",
+      "args": ["tsx", "mcp/vanity-review-server/src/index.ts"],
+      "env": {
+        "AWS_PROFILE": "shaileshdemo",
+        "AWS_REGION": "us-east-1",
+        "VANITY_TABLE_NAME": "ttec-vanity-numbers"
+      }
+    }
+  }
+}

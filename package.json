@@ -14,7 +14,9 @@
     "deploy": "npm run cdk -- deploy TtecConnectStack --require-approval never",
     "deploy:all": "npm run build && npm run test && npm run deploy",
     "deploy:hotswap": "npm run cdk -- deploy TtecConnectStack --hotswap --require-approval never",
-    "deploy:lambda": "npm run deploy:hotswap"
+    "deploy:lambda": "npm run deploy:hotswap",
+    "mcp:install": "npm install --prefix mcp/vanity-review-server",
+    "mcp:vanity-review": "npm start --prefix mcp/vanity-review-server"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
