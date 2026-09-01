@@ -4,9 +4,9 @@ export const PROJECT_CONFIG = {
     instanceAliasPrefix: 'shaileshdemo-connect',
     contactFlowName: 'ttec-inbound-flow',
     contactFlowFile: 'ttec-inbound-flow.json',
-    phoneCountryCode: 'US',
-    phoneNumberPrefix: '+1505',
-    phoneType: 'DID' as const,
+    /** Pre-provisioned inbound DID — managed outside CDK (claimed and associated manually). */
+    inboundPhoneNumber: '+15055393849',
+    inboundPhoneNumberId: '9e353661-694f-49cc-8320-75e9ddb01e79',
   },
   api: {
     baseUrl: 'https://d3ot99cmewuv1b.cloudfront.net',

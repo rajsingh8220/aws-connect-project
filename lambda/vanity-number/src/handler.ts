@@ -20,14 +20,14 @@ const DIGIT_TO_LETTERS: Record<string, string> = {
  * Score vanity candidates: prefer more letters (fewer digits), readable words,
  * and US-style 1-800-XXX-XXXX grouping when possible.
  */
-function scoreVanity(vanity: string): number {
+export function scoreVanity(vanity: string): number {
   const letters = (vanity.match(/[A-Z]/gi) ?? []).length;
   const digits = (vanity.match(/[0-9]/g) ?? []).length;
   const hasTriple = /([A-Z])\1\1/i.test(vanity) ? -2 : 0;
   return letters * 10 - digits * 3 + hasTriple;
 }
 
-function generateVanityCandidates(phoneNumber: string, limit = 20): string[] {
+export function generateVanityCandidates(phoneNumber: string, limit = 20): string[] {
   const digits = phoneNumber.replace(/\D/g, '').slice(-10);
   const candidates = new Set<string>();
 
@@ -75,8 +75,8 @@ export const handler = async (
 
   if (!sourcePhone) {
     return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'phone number is required' }),
+      vanitySuccess: 'false',
+      errorMessage: 'phone number is required',
     };
   }
 
@@ -107,6 +107,7 @@ export const handler = async (
   );
 
   return {
+    vanitySuccess: 'true',
     vanityOption1: topThree[0] ?? '',
     vanityOption2: topThree[1] ?? '',
     vanityOption3: topThree[2] ?? '',

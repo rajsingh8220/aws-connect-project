@@ -7,6 +7,7 @@
     "build": "tsc -p infra/tsconfig.json",
     "watch": "tsc -w -p infra/tsconfig.json",
     "test": "jest --config infra/jest.config.js",
+    "test:lambda": "jest --config infra/jest.config.js --testPathPattern=lambda/",
     "cdk": "cdk --app \"npx ts-node --prefer-ts-exts infra/bin/app.ts\"",
     "synth": "npm run cdk synth",
     "diff": "npm run cdk diff",
@@ -27,6 +28,8 @@
     "typescript": "~5.3.3"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
     "aws-cdk-lib": "2.170.0",
     "constructs": "^10.3.0",
     "source-map-support": "^0.5.21"

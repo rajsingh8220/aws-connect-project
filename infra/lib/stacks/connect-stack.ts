@@ -5,8 +5,6 @@ import { BusinessLambdasConstruct } from '../constructs/business-lambdas.constru
 import { ConnectInstanceConstruct } from '../constructs/connect-instance.construct';
 import { ConnectLambdaRegistrationConstruct } from '../constructs/connect-lambda-registration.construct';
 import { ContactFlowConstruct } from '../constructs/contact-flow.construct';
-import { PhoneAssociationConstruct } from '../constructs/phone-association.construct';
-import { PhoneNumberConstruct } from '../constructs/phone-number.construct';
 
 export class ConnectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -55,20 +53,6 @@ export class ConnectStack extends cdk.Stack {
       contactFlow.contactFlow.addDependency(registration);
     });
 
-    const phoneNumber = new PhoneNumberConstruct(this, 'InboundDid', {
-      instanceId: connectInstance.instanceId,
-      instanceArn: connectInstance.instanceArn,
-      countryCode: PROJECT_CONFIG.connect.phoneCountryCode,
-      prefix: PROJECT_CONFIG.connect.phoneNumberPrefix,
-    });
-    phoneNumber.claimResource.addDependency(connectInstance.instance);
-
-    new PhoneAssociationConstruct(this, 'PhoneAssociation', {
-      instanceId: connectInstance.instanceId,
-      phoneNumberId: phoneNumber.claimResource.getAtt('PhoneNumberId').toString(),
-      contactFlowId: contactFlow.contactFlowId,
-    });
-
     new cdk.CfnOutput(this, 'ConnectInstanceArn', {
       value: connectInstance.instanceArn,
       description: 'Amazon Connect instance ARN',
@@ -85,8 +69,13 @@ export class ConnectStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'InboundPhoneNumber', {
-      value: phoneNumber.phoneNumberAddress,
-      description: 'Dial this DID to reach the contact flow',
+      value: PROJECT_CONFIG.connect.inboundPhoneNumber,
+      description: 'Pre-provisioned inbound DID (managed outside CDK)',
+    });
+
+    new cdk.CfnOutput(this, 'InboundPhoneNumberId', {
+      value: PROJECT_CONFIG.connect.inboundPhoneNumberId,
+      description: 'Connect phone number ID for the inbound DID',
     });
 
     new cdk.CfnOutput(this, 'AccountLookupLambdaArn', {
