@@ -25,7 +25,7 @@ flowchart TB
 | `ttec-vanity-numbers` | DynamoDB table for vanity results |
 | Integration associations | Registers Lambdas with Connect |
 
-The inbound DID (`+15055393849`) is **pre-provisioned** and associated with the contact flow outside CDK. Its ID is stored in [`infra/lib/config/project-config.ts`](infra/lib/config/project-config.ts).
+The inbound DID (`+15055393849`) is pre-provisioned outside CDK. CDK re-associates it with `ttec-inbound-flow` on every deploy via `InboundPhoneAssociationConstruct`.
 
 ## Project layout
 

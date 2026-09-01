@@ -5,6 +5,7 @@ import { BusinessLambdasConstruct } from '../constructs/business-lambdas.constru
 import { ConnectInstanceConstruct } from '../constructs/connect-instance.construct';
 import { ConnectLambdaRegistrationConstruct } from '../constructs/connect-lambda-registration.construct';
 import { ContactFlowConstruct } from '../constructs/contact-flow.construct';
+import { InboundPhoneAssociationConstruct } from '../constructs/inbound-phone-association.construct';
 
 export class ConnectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -52,6 +53,12 @@ export class ConnectStack extends cdk.Stack {
     lambdaRegistration.registrations.forEach((registration) => {
       contactFlow.contactFlow.addDependency(registration);
     });
+
+    new InboundPhoneAssociationConstruct(this, 'InboundPhoneAssociation', {
+      instanceId: connectInstance.instanceId,
+      phoneNumberId: PROJECT_CONFIG.connect.inboundPhoneNumberId,
+      contactFlowId: contactFlow.contactFlowId,
+    }).node.addDependency(contactFlow.contactFlow);
 
     new cdk.CfnOutput(this, 'ConnectInstanceArn', {
       value: connectInstance.instanceArn,

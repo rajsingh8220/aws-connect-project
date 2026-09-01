@@ -12,7 +12,7 @@ describe('ConnectStack', () => {
     const template = Template.fromStack(stack);
 
     template.resourceCountIs('AWS::DynamoDB::Table', 1);
-    template.resourceCountIs('AWS::Lambda::Function', 2);
+    template.resourceCountIs('AWS::Lambda::Function', 3);
     template.resourceCountIs('AWS::Connect::IntegrationAssociation', 2);
     template.resourceCountIs('AWS::Connect::ContactFlow', 1);
   });
